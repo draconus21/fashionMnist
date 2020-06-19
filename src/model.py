@@ -20,3 +20,4 @@ class Net(nn.Module):
         x = self.fc3(x)
         return x
 
+    #def train(self, trainiter):

@@ -46,7 +46,6 @@ def plot_classes_preds(net, images, labels, classes):
     Uses the "images_to_probs" function.
     '''
 
-    print(images.shape)
     preds, probs = images_to_probs(net, images)
     fig, ax = plt.subplots(nrows=1, ncols=4, figsize=(12, 48), squeeze=False)
     for idx in np.arange(4):
@@ -128,6 +127,43 @@ def train(trainset, classes, writer, criterion, optimizer, net):
 
     print('Fininshed Training')
 
+def add_pr_curve_tensorboard(class_index, test_probs, test_preds,
+                             classes, writer, global_step=0):
+    '''
+    takes in a "class_index" from 0 to 9 and plots the corresponding preciision-recall curve
+    '''
+
+    tensorboard_preds = test_preds == class_index
+    tensorboard_probs = test_probs[:, class_index]
+
+    writer.add_pr_curve(classes[class_index],
+                        tensorboard_preds,
+                        tensorboard_probs,
+                        global_step=global_step)
+    writer.close()
+
+def test(testset, classes, writer, net):
+    class_probs = []
+    class_preds = []
+
+    testloader = torch.utils.data.DataLoader(testset,
+                                            batch_size=4,
+                                            shuffle=False,
+                                            num_workers=2)
+
+    with torch.no_grad():
+        for data in testloader:
+            images, labels = data
+            output = net(images)
+            class_probs_batch = [F.softmax(el, dim=0) for el in output]
+            _, class_preds_batch = torch.max(output, 1)
+            class_probs.append(class_probs_batch)
+            class_preds.append(class_preds_batch)
+    test_probs = torch.cat([torch.stack(batch) for batch in class_probs])
+    test_preds = torch.cat(class_preds)
+
+    for i in range(len(classes)):
+        add_pr_curve_tensorboard(i, test_probs, test_preds, classes, writer)
 
 
 
@@ -147,11 +183,6 @@ def run():
                                                train=False,
                                                transform=transform)
 
-    testloader = torch.utils.data.DataLoader(testset,
-                                            batch_size=4,
-                                            shuffle=False,
-                                            num_workers=2)
-
     # constants for classes
     classes = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress',
               'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag',
@@ -168,6 +199,8 @@ def run():
           criterion=criterion, optimizer=optimizer,
           net=net)
 
+    test(writer=writer, testset=testset, classes=classes,
+          net=net)
 
 if __name__ == '__main__':
     run()
