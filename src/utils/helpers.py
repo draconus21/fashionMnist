@@ -58,3 +58,18 @@ def select_n_random(data, labels, n=100):
     perm = torch.randperm(len(data))
     return data[perm][:n], labels[perm][:n]
 
+def add_pr_curve_tensorboard(class_index, test_probs, test_preds,
+                             classes, writer, global_step=0):
+    '''
+    takes in a "class_index" from 0 to 9 and plots the corresponding preciision-recall curve
+    '''
+
+    tensorboard_preds = test_preds == class_index
+    tensorboard_probs = test_probs[:, class_index]
+
+    writer.add_pr_curve(classes[class_index],
+                        tensorboard_preds,
+                        tensorboard_probs,
+                        global_step=global_step)
+    writer.close()
+

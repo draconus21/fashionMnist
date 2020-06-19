@@ -20,4 +20,18 @@ class Net(nn.Module):
         x = self.fc3(x)
         return x
 
-    #def train(self, trainiter):
+    def step(self, traindata, criterion, optimizer):
+        # get the inputs; data is a list of [inputs, labels]
+        inputs, labels = traindata
+
+        # zero the parameters of the gradients
+        optimizer.zero_grad()
+
+        # forwards + backward + optimize
+        outputs = self.forward(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        return loss.item()
+

@@ -47,19 +47,7 @@ def train(trainset, classes, writer, criterion, optimizer, net):
     nepochs = 1
     for epoch in range(nepochs):
         for i, data in enumerate(trainloader, 0):
-            # get the inputs; data is a list of [inputs, labels]
-            inputs, labels = data
-
-            # zero the parameter gradients
-            optimizer.zero_grad()
-
-            # forward + backward + optimize
-            outputs = net(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-
-            running_loss += loss.item()
+            running_loss += net.step(data, optimizer=optimizer, criterion=criterion)
             if i%1000 == 999:
                 # ...log the running loss
                 writer.add_scalar('training loss',
@@ -67,27 +55,13 @@ def train(trainset, classes, writer, criterion, optimizer, net):
                                   epoch * len(trainloader) + i)
 
                 # ...log a Matplotlib Figure showing the model's predictions on a random mini-batch
+                inputs, labels = data
                 writer.add_figure('predictions vs. actuals',
                                   helpers.plot_classes_preds(net, inputs, labels, classes),
                                                      global_step=epoch*len(trainloader) + i)
                 running_loss = 0.0
 
     print('Fininshed Training')
-
-def add_pr_curve_tensorboard(class_index, test_probs, test_preds,
-                             classes, writer, global_step=0):
-    '''
-    takes in a "class_index" from 0 to 9 and plots the corresponding preciision-recall curve
-    '''
-
-    tensorboard_preds = test_preds == class_index
-    tensorboard_probs = test_probs[:, class_index]
-
-    writer.add_pr_curve(classes[class_index],
-                        tensorboard_preds,
-                        tensorboard_probs,
-                        global_step=global_step)
-    writer.close()
 
 def test(testset, classes, writer, net):
     class_probs = []
@@ -110,7 +84,7 @@ def test(testset, classes, writer, net):
     test_preds = torch.cat(class_preds)
 
     for i in range(len(classes)):
-        add_pr_curve_tensorboard(i, test_probs, test_preds, classes, writer)
+        helpers.add_pr_curve_tensorboard(i, test_probs, test_preds, classes, writer)
 
 
 
